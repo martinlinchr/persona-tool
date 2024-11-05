@@ -2,7 +2,8 @@ from typing import List, Dict, Optional
 import streamlit as st
 from openai import AsyncOpenAI
 
-PERSONA_BUILDER_ID = "asst_IQgwDHzRMhnidyPJ2BQRJ3"
+# Correct Assistant ID
+PERSONA_BUILDER_ID = "asst_IQgwDHzRMhnidyPdpJ2BQRJ3"
 
 class ChatService:
     def __init__(self, client: AsyncOpenAI):
