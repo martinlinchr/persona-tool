@@ -8,30 +8,36 @@ class PersonaCreator:
 
     async def render(self):
         """Render the persona creation interface."""
-        st.header("Create Product/Service Persona")
-        
-        # Initialize chat history if not exists
-        if 'chat_history' not in st.session_state:
-            st.session_state.chat_history = []
-            # Add initial message from assistant
-            initial_response = await self.chat_service.chat_with_persona_builder(
-                "Let's create a persona for your product or service. Tell me about your product/service - what do you sell?"
-            )
-            await self.chat_service.save_chat_history(
-                "Let's create a persona for your product or service.",
-                initial_response
-            )
+        st.header("Create Persona Based on Your Product/Service")
+
+        # Initialize chat thread if not exists
+        if "thread_id" not in st.session_state:
+            thread = await self.chat_service.create_thread()
+            if thread:
+                st.session_state.thread_id = thread.id
+                # Send initial message
+                response = await self.chat_service.send_message(
+                    thread.id,
+                    "Tell me about your product or service, and I'll help create a perfect persona for it."
+                )
+            else:
+                st.error("Failed to initialize chat. Please refresh the page.")
+                return
 
         # Display chat history
-        for message in st.session_state.chat_history:
+        history = await self.chat_service.get_chat_history(st.session_state.thread_id)
+        for message in history:
             with st.chat_message(message["role"]):
                 st.write(message["content"])
 
         # Chat input
         if message := st.chat_input("Tell me about your product/service..."):
-            response = await self.chat_service.chat_with_persona_builder(message)
-            await self.chat_service.save_chat_history(message, response)
-            st.rerun()
+            response = await self.chat_service.send_message(
+                st.session_state.thread_id,
+                message
+            )
+            if response:
+                st.rerun()
 
         # Show form when ready
         if st.button("Ready to Save Persona"):
@@ -42,41 +48,38 @@ class PersonaCreator:
                 st.subheader("Save Your Persona")
                 
                 name = st.text_input("Persona Name")
-                background = st.text_area("Background Story (including relation to your product/service)")
+                background = st.text_area("Background Story")
                 personality = st.text_area("Personality Traits")
                 expertise = st.text_area("Areas of Expertise")
                 speech_style = st.text_area("Speech Style")
-
-                # File upload for additional context
-                uploaded_files = st.file_uploader(
-                    "Upload Reference Documents (Optional)",
-                    accept_multiple_files=True,
-                    type=["pdf", "txt", "doc", "docx"]
-                )
 
                 if st.form_submit_button("Save Persona"):
                     if not name or not background:
                         st.error("Please provide at least a name and background.")
                         return None
 
+                    # Create the persona
                     persona = {
                         "name": name,
                         "background": background,
                         "personality": personality,
                         "expertise": expertise,
                         "speech_style": speech_style,
-                        "chat_history": st.session_state.chat_history,
-                        "files": [f.name for f in (uploaded_files or [])]
+                        "development_chat": history
                     }
 
-                    # Store the persona in session state
-                    st.session_state.current_persona = persona
+                    # Initialize saved_personas if it doesn't exist
+                    if 'saved_personas' not in st.session_state:
+                        st.session_state.saved_personas = []
+
+                    # Add the new persona to the list
+                    st.session_state.saved_personas.append(persona)
+
+                    # Clear current session
+                    st.session_state.pop('thread_id', None)
+                    st.session_state.pop('show_form', None)
+
                     st.success(f"Persona '{name}' saved successfully!")
-                    
-                    # Clear chat history and form
-                    st.session_state.chat_history = []
-                    st.session_state.show_form = False
-                    
                     return persona
 
         return None
