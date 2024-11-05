@@ -1,31 +1,19 @@
 import streamlit as st
 from typing import List, Optional
 from utils.openai_helpers import handle_openai_error
-from config import AppConfig
 
 class AssistantService:
     def __init__(self, client):
         self.client = client
 
     @handle_openai_error
-    async def create_assistant(
-        self,
-        name: str,
-        instructions: str,
-        file_ids: Optional[List[str]] = None
-    ):
-        """Create a new OpenAI assistant with the given configuration."""
+    async def get_assistant(self, assistant_id: str):
+        """Fetch a specific assistant by ID."""
         try:
-            assistant = await self.client.beta.assistants.create(
-                instructions=instructions,
-                name=name,
-                model="gpt-4o",
-                tools=[{"type": "retrieval"}],
-                file_ids=file_ids or []
-            )
+            assistant = await self.client.beta.assistants.retrieve(assistant_id)
             return assistant
         except Exception as e:
-            st.error(f"Failed to create assistant: {str(e)}")
+            st.error(f"Failed to fetch assistant: {str(e)}")
             return None
 
     @handle_openai_error
@@ -40,15 +28,6 @@ class AssistantService:
         except Exception as e:
             st.error(f"Failed to fetch assistants: {str(e)}")
             return []
-
-    @handle_openai_error
-    async def delete_assistant(self, assistant_id: str):
-        """Delete an assistant by ID."""
-        try:
-            return await self.client.beta.assistants.delete(assistant_id)
-        except Exception as e:
-            st.error(f"Failed to delete assistant: {str(e)}")
-            return None
 
     @handle_openai_error
     async def upload_file(self, file_content, file_name: str):
