@@ -19,7 +19,7 @@ class AssistantService:
             assistant = await self.client.beta.assistants.create(
                 instructions=instructions,
                 name=name,
-                model="gpt-4-turbo-preview",  # Using the model directly here
+                model="gpt-4o",
                 tools=[{"type": "retrieval"}],
                 file_ids=file_ids or []
             )
