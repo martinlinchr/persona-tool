@@ -2,69 +2,76 @@ from typing import List, Dict, Optional
 import streamlit as st
 from openai import AsyncOpenAI
 
+PERSONA_BUILDER_ID = "asst_IQgwDHzRMhnidyPJ2BQRJ3"
+
 class ChatService:
     def __init__(self, client: AsyncOpenAI):
         self.client = client
 
     async def create_thread(self):
-        """Initialize a new conversation thread."""
-        # In our simplified version, we just need to reset the chat history
-        if 'chat_history' not in st.session_state:
-            st.session_state.chat_history = []
-        return {"id": "simple_thread"}  # Dummy thread object
-
-    async def chat_with_persona_builder(self, message: str, context: str = "") -> str:
-        """Chat with the persona builder using direct chat completions."""
+        """Create a new chat thread."""
         try:
-            # Initialize system message with focus on product/service
-            system_message = """You are a specialized AI assistant designed to create detailed personas based on products or services. 
-            Your first task is to understand the product/service thoroughly.
-            Then, help create a persona that would be ideal for marketing, selling, or representing this product/service.
-            
-            Your process should:
-            1. First understand the product/service details
-            2. Ask relevant questions about target market, price point, unique features
-            3. Based on the answers, suggest and develop a persona that would be perfect for this product/service
-            4. Help flesh out the persona's:
-               - Background that relates to the product/service
-               - Relevant expertise and experiences
-               - Communication style that would resonate with the target market
-               - Personality traits that align with the brand
-            
-            Be collaborative and creative while keeping the focus on developing a persona that makes sense for the product/service."""
+            thread = await self.client.beta.threads.create()
+            return thread
+        except Exception as e:
+            st.error(f"Failed to create thread: {str(e)}")
+            return None
 
-            messages = [
-                {"role": "system", "content": system_message}
-            ]
+    async def send_message(self, thread_id: str, message: str):
+        """Send a message and get the assistant's response."""
+        try:
+            # Add the user's message to the thread
+            await self.client.beta.threads.messages.create(
+                thread_id=thread_id,
+                role="user",
+                content=message
+            )
 
-            # Add context if it exists
-            if context:
-                messages.append({"role": "assistant", "content": context})
+            # Run the assistant
+            run = await self.client.beta.threads.runs.create(
+                thread_id=thread_id,
+                assistant_id=PERSONA_BUILDER_ID
+            )
 
-            # Add chat history from session state
-            for msg in st.session_state.get('chat_history', []):
-                messages.append({"role": msg["role"], "content": msg["content"]})
+            # Wait for the run to complete
+            while True:
+                run_status = await self.client.beta.threads.runs.retrieve(
+                    thread_id=thread_id,
+                    run_id=run.id
+                )
+                if run_status.status == "completed":
+                    break
+                elif run_status.status in ["failed", "cancelled", "expired"]:
+                    raise Exception(f"Run failed with status: {run_status.status}")
 
-            # Add the current message
-            messages.append({"role": "user", "content": message})
-
-            response = await self.client.chat.completions.create(
-                model="gpt-4-turbo-preview",
-                messages=messages,
-                temperature=0.7
+            # Get the messages
+            messages = await self.client.beta.threads.messages.list(
+                thread_id=thread_id
             )
             
-            return response.choices[0].message.content
-        except Exception as e:
-            st.error(f"Error in chat: {str(e)}")
-            return "I apologize, but I encountered an error. Please try again."
+            if messages.data:
+                return messages.data[0].content[0].text.value
+            return None
 
-    async def save_chat_history(self, message: str, response: str):
-        """Save chat history to session state."""
-        if 'chat_history' not in st.session_state:
-            st.session_state.chat_history = []
-        
-        st.session_state.chat_history.extend([
-            {"role": "user", "content": message},
-            {"role": "assistant", "content": response}
-        ])
+        except Exception as e:
+            st.error(f"Failed to process message: {str(e)}")
+            return None
+
+    async def get_chat_history(self, thread_id: str) -> List[Dict]:
+        """Retrieve the chat history for a thread."""
+        try:
+            messages = await self.client.beta.threads.messages.list(
+                thread_id=thread_id
+            )
+            
+            history = []
+            for msg in reversed(messages.data):
+                history.append({
+                    "role": msg.role,
+                    "content": msg.content[0].text.value
+                })
+            
+            return history
+        except Exception as e:
+            st.error(f"Failed to fetch chat history: {str(e)}")
+            return []
