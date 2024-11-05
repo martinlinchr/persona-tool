@@ -17,11 +17,11 @@ class AssistantService:
         """Create a new OpenAI assistant with the given configuration."""
         try:
             assistant = await self.client.beta.assistants.create(
-                name=name,
                 instructions=instructions,
-                model=AppConfig.DEFAULT_MODEL,
-                file_ids=file_ids or [],
-                tools=[{"type": "retrieval"}]
+                name=name,
+                model="gpt-4-turbo-preview",  # Using the model directly here
+                tools=[{"type": "retrieval"}],
+                file_ids=file_ids or []
             )
             return assistant
         except Exception as e:
