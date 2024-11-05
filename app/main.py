@@ -1,7 +1,7 @@
 import streamlit as st
-from app.config import AppConfig, UIConfig
-from app.components.sidebar import render_sidebar
-from app.utils.openai_helpers import initialize_openai_client
+from config import AppConfig, UIConfig
+from components.sidebar import render_sidebar
+from utils.openai_helpers import initialize_openai_client
 
 def main():
     st.set_page_config(
