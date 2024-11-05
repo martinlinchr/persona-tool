@@ -1,15 +1,15 @@
 import functools
 import streamlit as st
-from openai import OpenAI, AsyncOpenAI
-from openai.types.error import APIError
-from config import OpenAIConfig
+from openai import AsyncOpenAI
+from openai._types import NotGiven
+from openai.types.error import OpenAIError
 
 def initialize_openai_client() -> AsyncOpenAI:
     """Initialize the OpenAI client with credentials from Streamlit secrets."""
     try:
         client = AsyncOpenAI(
-            api_key=OpenAIConfig.api_key,
-            organization=OpenAIConfig.organization
+            api_key=st.secrets["OPENAI_API_KEY"],
+            organization=st.secrets.get("OPENAI_ORGANIZATION", NotGiven())
         )
         return client
     except Exception as e:
@@ -22,10 +22,10 @@ def handle_openai_error(func):
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
-        except APIError as e:
-            if e.code == "rate_limit_exceeded":
+        except OpenAIError as e:
+            if "rate_limit" in str(e).lower():
                 st.error("Rate limit exceeded. Please try again in a few moments.")
-            elif e.code == "invalid_api_key":
+            elif "invalid_api_key" in str(e).lower():
                 st.error("Invalid API key. Please check your OpenAI API key.")
             else:
                 st.error(f"OpenAI API error: {str(e)}")
