@@ -1,7 +1,7 @@
-from typing import List, Optional
 import streamlit as st
-from config import OpenAIConfig
+from typing import List, Optional
 from utils.openai_helpers import handle_openai_error
+from config import AppConfig
 
 class AssistantService:
     def __init__(self, client):
@@ -19,7 +19,7 @@ class AssistantService:
             assistant = await self.client.beta.assistants.create(
                 name=name,
                 instructions=instructions,
-                model=OpenAIConfig.DEFAULT_MODEL,
+                model=AppConfig.DEFAULT_MODEL,
                 file_ids=file_ids or [],
                 tools=[{"type": "retrieval"}]
             )
