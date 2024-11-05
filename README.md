@@ -24,11 +24,16 @@ cd persona-creator-chat
 pip install -r requirements.txt
 ```
 
-3. Configure Streamlit secrets:
-   - Copy the `.streamlit/secrets.toml.template` file to `.streamlit/secrets.toml`
-   - Add your OpenAI API key and optional organization ID
+3. Configure Secrets in Streamlit Cloud:
+   - Go to your Streamlit Cloud dashboard
+   - Navigate to "Settings" > "Secrets"
+   - Add your secrets in the following format:
+     ```toml
+     OPENAI_API_KEY = "your-api-key-here"
+     OPENAI_ORGANIZATION = "your-org-id-here"  # Optional
+     ```
 
-4. For Streamlit Cloud deployment:
+4. Deploy on Streamlit Cloud:
    - Add the secrets in the Streamlit Cloud dashboard under "Settings" > "Secrets"
    - Connect your GitHub repository to Streamlit Cloud
    - Deploy the application
@@ -38,8 +43,7 @@ pip install -r requirements.txt
 ```
 .
 ├── requirements.txt          # Python dependencies
-├── .streamlit/
-│   └── secrets.toml         # Configuration secrets
+├── src/
 ├── src/
 │   ├── main.py             # Application entry point
 │   ├── config.py           # Configuration settings
