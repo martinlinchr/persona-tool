@@ -1,11 +1,9 @@
-"""
-Services for handling OpenAI API interactions and business logic
-"""
-
-from app.services.assistant_service import AssistantService
-from app.services.chat_service import ChatService
+from .assistant_service import AssistantService
+from .chat_service import ChatService
+from .persona_service import PersonaService
 
 __all__ = [
     'AssistantService',
-    'ChatService'
+    'ChatService',
+    'PersonaService'
 ]
