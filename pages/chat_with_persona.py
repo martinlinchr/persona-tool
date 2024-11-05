@@ -6,6 +6,9 @@ async def render_chat_page():
     """Render the chat interface page."""
     if not st.session_state.get("current_persona"):
         st.warning("Please select or create a persona first!")
+        if st.button("Create New Persona"):
+            st.session_state.current_page = "create_persona"
+            st.rerun()
         return
 
     # Initialize services
