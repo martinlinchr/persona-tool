@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional
 import streamlit as st
-from config import OpenAIConfig
+from config import AppConfig
 from utils.openai_helpers import handle_openai_error
 
 class ChatService:
@@ -83,15 +83,15 @@ class ChatService:
             st.error(f"Failed to fetch chat history: {str(e)}")
             return []
 
-    def generate_summary(self, chat_history: List[Dict]) -> str:
+    async def generate_summary(self, chat_history: List[Dict]) -> str:
         """Generate a summary of the chat history."""
         try:
             summary_prompt = "Please summarize the key points from this conversation:\n\n"
             for msg in chat_history:
                 summary_prompt += f"{msg['role']}: {msg['content']}\n"
 
-            response = self.client.chat.completions.create(
-                model=OpenAIConfig.DEFAULT_MODEL,
+            response = await self.client.chat.completions.create(
+                model=AppConfig.DEFAULT_MODEL,
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that summarizes conversations."},
                     {"role": "user", "content": summary_prompt}
