@@ -100,8 +100,8 @@ class PersonaCreator:
                 help="Upload documents to provide additional context for your persona"
             )
 
-            if st.form_submit_button("Create Persona"):
-                return await self._handle_persona_creation(
+            if st.form_submit_button("Save Persona"):
+                return await self._save_persona(
                     persona_name,
                     background,
                     personality,
@@ -110,7 +110,7 @@ class PersonaCreator:
                     uploaded_files
                 )
 
-    async def _handle_persona_creation(
+    async def _save_persona(
         self,
         name: str,
         background: str,
@@ -119,73 +119,41 @@ class PersonaCreator:
         speech_style: str,
         files: Optional[List] = None
     ):
-        """Handle the creation of a new persona."""
+        """Save the created persona details."""
         if not name or not background:
             st.error("Please provide at least a name and background for your persona.")
             return None
 
-        with st.spinner("Creating your persona..."):
-            # Upload files if provided
-            file_ids = []
-            if files:
-                for file in files:
-                    if validate_file(file):
-                        uploaded_file = await self.assistant_service.upload_file(
-                            file.getvalue(),
-                            file.name
-                        )
-                        if uploaded_file:
-                            file_ids.append(uploaded_file.id)
-
-            # Get chat history for context
-            chat_history = await self.chat_service.get_chat_history(
+        # Create a persona object to store in session state
+        persona = {
+            "name": name,
+            "background": background,
+            "personality": personality,
+            "expertise": expertise,
+            "speech_style": speech_style,
+            "files": [],  # List to store file information
+            "chat_history": await self.chat_service.get_chat_history(
                 st.session_state.builder_thread_id
             )
+        }
 
-            # Create the instruction set for the assistant
-            instructions = f"""
-            You are now embodying a persona with the following characteristics:
+        # Handle file uploads if any
+        if files:
+            for file in files:
+                if validate_file(file):
+                    uploaded_file = await self.assistant_service.upload_file(
+                        file.getvalue(),
+                        file.name
+                    )
+                    if uploaded_file:
+                        persona["files"].append({
+                            "name": file.name,
+                            "id": uploaded_file.id
+                        })
 
-            Name: {name}
+        # Clear the builder chat state for next persona
+        st.session_state.pop("builder_thread_id", None)
+        st.session_state.pop("builder_messages", None)
+        st.session_state.pop("ready_for_creation", None)
 
-            Background:
-            {background}
-
-            Personality Traits:
-            {personality}
-
-            Areas of Expertise:
-            {expertise}
-
-            Speech Style:
-            {speech_style}
-
-            Development Context:
-            This persona was developed through the following conversation:
-            {"".join(f"{msg['role']}: {msg['content']}\n" for msg in chat_history)}
-
-            Instructions:
-            1. Always stay in character and respond as this persona would.
-            2. Use the speech style and mannerisms described above.
-            3. Draw from the background and expertise provided.
-            4. If asked something outside your expertise, acknowledge it while staying in character.
-            5. Maintain consistent personality traits throughout interactions.
-            """
-
-            # Create the assistant
-            assistant = await self.assistant_service.create_assistant(
-                name=name,
-                instructions=instructions,
-                file_ids=file_ids
-            )
-
-            if assistant:
-                st.success(f"Persona '{name}' created successfully!")
-                # Clear the builder chat state for next persona
-                st.session_state.pop("builder_thread_id", None)
-                st.session_state.pop("builder_messages", None)
-                st.session_state.pop("ready_for_creation", None)
-                return assistant
-            else:
-                st.error("Failed to create persona. Please try again.")
-                return None
+        return persona
