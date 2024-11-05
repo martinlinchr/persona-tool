@@ -8,17 +8,17 @@ class PersonaCreator:
 
     async def render(self):
         """Render the persona creation interface."""
-        st.header("Create New Persona")
+        st.header("Create Product/Service Persona")
         
         # Initialize chat history if not exists
         if 'chat_history' not in st.session_state:
             st.session_state.chat_history = []
             # Add initial message from assistant
             initial_response = await self.chat_service.chat_with_persona_builder(
-                "Help me create a new persona."
+                "Let's create a persona for your product or service. Tell me about your product/service - what do you sell?"
             )
             await self.chat_service.save_chat_history(
-                "Help me create a new persona.",
+                "Let's create a persona for your product or service.",
                 initial_response
             )
 
@@ -28,7 +28,7 @@ class PersonaCreator:
                 st.write(message["content"])
 
         # Chat input
-        if message := st.chat_input("Describe your persona ideas..."):
+        if message := st.chat_input("Tell me about your product/service..."):
             response = await self.chat_service.chat_with_persona_builder(message)
             await self.chat_service.save_chat_history(message, response)
             st.rerun()
@@ -42,7 +42,7 @@ class PersonaCreator:
                 st.subheader("Save Your Persona")
                 
                 name = st.text_input("Persona Name")
-                background = st.text_area("Background Story")
+                background = st.text_area("Background Story (including relation to your product/service)")
                 personality = st.text_area("Personality Traits")
                 expertise = st.text_area("Areas of Expertise")
                 speech_style = st.text_area("Speech Style")
