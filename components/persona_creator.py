@@ -10,107 +10,90 @@ class PersonaCreator:
         """Render the persona creation interface."""
         st.header("Persona Generator")
         st.markdown("""
-        Let our AI help you create the perfect persona for your product or service. 
-        Just tell us what you're selling, and we'll help develop a detailed persona.
+        Our AI Persona Generator will create the perfect persona for your product or service. 
+        Just start by telling us what you're selling.
         """)
 
-        # Initialize chat thread if not exists
-        if "thread_id" not in st.session_state:
-            thread = await self.chat_service.create_thread()
-            if thread:
-                st.session_state.thread_id = thread.id
-                # Send initial message
-                response = await self.chat_service.send_message(
-                    thread.id,
-                    "I'm here to help create a persona for your product or service. "
-                    "To get started, please tell me what product or service you're selling?"
-                )
-            else:
-                st.error("Failed to initialize chat. Please refresh the page.")
-                return
+        # Only initialize chat when user provides first input
+        if not st.session_state.get('thread_id'):
+            message = st.chat_input("What product or service are you selling?")
+            if message:  # Only start the process when user inputs something
+                thread = await self.chat_service.create_thread()
+                if thread:
+                    st.session_state.thread_id = thread.id
+                    response = await self.chat_service.send_message(
+                        thread.id,
+                        message
+                    )
+                    if response:
+                        st.rerun()
+                else:
+                    st.error("Failed to initialize chat. Please refresh the page.")
+                    return
+        else:
+            # Continue existing conversation
+            history = await self.chat_service.get_chat_history(st.session_state.thread_id)
+            for message in history:
+                with st.chat_message(message["role"]):
+                    st.write(message["content"])
 
-        # Display chat history
-        history = await self.chat_service.get_chat_history(st.session_state.thread_id)
-        for message in history:
-            with st.chat_message(message["role"]):
-                st.write(message["content"])
+            # Chat input for continued conversation
+            if message := st.chat_input("Respond to AI..."):
+                with st.spinner("AI is thinking..."):
+                    response = await self.chat_service.send_message(
+                        st.session_state.thread_id,
+                        message
+                    )
+                    if response:
+                        st.rerun()
 
-        # Chat input
-        if message := st.chat_input("Describe your product or service..."):
-            with st.spinner("Generating response..."):
-                response = await self.chat_service.send_message(
-                    st.session_state.thread_id,
-                    message
-                )
-                if response:
-                    st.rerun()
-
-        # Only show the save button after some conversation has happened
-        if history and len(history) > 2:  # After at least one exchange
-            if st.button("Save Generated Persona"):
-                st.session_state.show_form = True
+            # Only show the save button after persona has been generated
+            if len(history) > 2 and st.button("Save Generated Persona"):
+                # Here we'll let the Assistant compile the persona details
+                compile_message = """Please compile all the persona details we've discussed into a structured format with the following sections:
+                - Name
+                - Background Story
+                - Personality Traits
+                - Areas of Expertise
+                - Speech Style"""
+                
+                with st.spinner("Compiling persona details..."):
+                    response = await self.chat_service.send_message(
+                        st.session_state.thread_id,
+                        compile_message
+                    )
+                    if response:
+                        st.session_state.show_form = True
+                        st.session_state.compiled_persona = response
+                        st.rerun()
 
         if st.session_state.get('show_form', False):
             with st.form("persona_form"):
-                st.subheader("Save Generated Persona")
+                st.subheader("Review Generated Persona")
+                st.markdown("The AI has generated the following persona. Review and edit if needed:")
                 
-                # Extract the last assistant message for context
-                last_assistant_message = next(
-                    (msg["content"] for msg in reversed(history) 
-                     if msg["role"] == "assistant"), 
-                    ""
-                )
+                st.markdown(st.session_state.compiled_persona)
                 
-                st.markdown("Review and edit the generated persona details before saving:")
-                
-                name = st.text_input(
-                    "Persona Name",
-                    help="The name suggested by the AI for your persona"
-                )
-                background = st.text_area(
-                    "Background Story",
-                    help="The background story developed during our conversation"
-                )
-                personality = st.text_area(
-                    "Personality Traits",
-                    help="Key personality traits identified for your persona"
-                )
-                expertise = st.text_area(
-                    "Areas of Expertise",
-                    help="Relevant expertise for your product/service"
-                )
-                speech_style = st.text_area(
-                    "Speech Style",
-                    help="How this persona communicates"
-                )
-
-                if st.form_submit_button("Save Persona"):
-                    if not name or not background:
-                        st.error("Please provide at least a name and background.")
-                        return None
-
+                if st.form_submit_button("Confirm and Save Persona"):
                     # Create the persona
-                    persona = {
-                        "name": name,
-                        "background": background,
-                        "personality": personality,
-                        "expertise": expertise,
-                        "speech_style": speech_style,
-                        "development_chat": history
-                    }
-
+                    history = await self.chat_service.get_chat_history(st.session_state.thread_id)
+                    
                     # Initialize saved_personas if it doesn't exist
                     if 'saved_personas' not in st.session_state:
                         st.session_state.saved_personas = []
 
                     # Add the new persona to the list
-                    st.session_state.saved_personas.append(persona)
+                    st.session_state.saved_personas.append({
+                        "compiled_details": st.session_state.compiled_persona,
+                        "development_chat": history
+                    })
 
                     # Clear current session
                     st.session_state.pop('thread_id', None)
                     st.session_state.pop('show_form', None)
+                    st.session_state.pop('compiled_persona', None)
 
-                    st.success(f"Persona '{name}' saved successfully!")
-                    return persona
+                    st.success("Persona saved successfully!")
+                    st.rerun()
 
         return None
