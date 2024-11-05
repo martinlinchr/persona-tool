@@ -1,6 +1,6 @@
 import streamlit as st
-from services.assistant_service import AssistantService
-from config import UIConfig
+from app.services.assistant_service import AssistantService
+from app.config import UIConfig
 
 async def render_sidebar():
     """Render the application sidebar."""
