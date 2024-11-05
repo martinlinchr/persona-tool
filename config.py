@@ -1,9 +1,10 @@
-import streamlit as st
-
-# OpenAI API Configuration
-class OpenAIConfig:
-    api_key = st.secrets["OPENAI_API_KEY"]
-    organization = st.secrets.get("OPENAI_ORGANIZATION", None)  # Optional
+class AppConfig:
+    """Application configuration settings."""
+    APP_NAME = "Persona Creator & Chat"
+    PERSONA_STORAGE_KEY = "current_persona"
+    ASSISTANT_STORAGE_KEY = "current_assistant"
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+    ALLOWED_FILE_TYPES = ["pdf", "txt", "doc", "docx"]
     
     # Model configurations
     DEFAULT_MODEL = "gpt-4-turbo-preview"
@@ -16,16 +17,8 @@ class OpenAIConfig:
     detailed, consistent personas and then embody those personas in conversation.
     """
 
-# App Configuration
-class AppConfig:
-    APP_NAME = "Persona Creator & Chat"
-    PERSONA_STORAGE_KEY = "current_persona"
-    ASSISTANT_STORAGE_KEY = "current_assistant"
-    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-    ALLOWED_FILE_TYPES = ["pdf", "txt", "doc", "docx"]
-    
-# UI Configuration
 class UIConfig:
+    """UI-specific configuration settings."""
     SIDEBAR_WIDTH = 300
     MAX_CHAT_MESSAGES = 50
     THEME_COLOR = "#FF4B4B"
