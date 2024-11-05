@@ -2,7 +2,7 @@ import streamlit as st
 from typing import Optional, List
 from services.assistant_service import AssistantService
 from utils.file_handlers import validate_file
-from config import OpenAIConfig, AppConfig
+from config import AppConfig
 
 class PersonaCreator:
     def __init__(self, assistant_service: AssistantService):
