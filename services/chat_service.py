@@ -1,7 +1,8 @@
 from typing import List, Dict, Optional
 import streamlit as st
-from config import AppConfig
 from utils.openai_helpers import handle_openai_error
+
+PERSONA_BUILDER_ID = "asst_IQgwDHzRMhnidyPJ2BQRJ3"
 
 class ChatService:
     def __init__(self, client):
@@ -90,15 +91,19 @@ class ChatService:
             for msg in chat_history:
                 summary_prompt += f"{msg['role']}: {msg['content']}\n"
 
-            response = await self.client.chat.completions.create(
-                model=AppConfig.DEFAULT_MODEL,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant that summarizes conversations."},
-                    {"role": "user", "content": summary_prompt}
-                ]
+            # Send the summary request to the Persona Builder assistant
+            thread = await self.create_thread()
+            if not thread:
+                return "Failed to generate summary"
+
+            response = await self.send_message(
+                thread_id=thread.id,
+                assistant_id=PERSONA_BUILDER_ID,
+                message=summary_prompt
             )
             
-            return response.choices[0].message.content
+            return response or "Failed to generate summary"
+            
         except Exception as e:
             st.error(f"Failed to generate summary: {str(e)}")
             return "Failed to generate summary"
