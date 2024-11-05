@@ -1,9 +1,12 @@
 import streamlit as st
-from config import AppConfig, UIConfig
+import asyncio
+from config import AppConfig
 from components.sidebar import render_sidebar
 from utils.openai_helpers import initialize_openai_client
+from pages.create_persona import render_create_persona_page
+from pages.chat_with_persona import render_chat_page
 
-def main():
+async def main():
     st.set_page_config(
         page_title=AppConfig.APP_NAME,
         page_icon="🎭",
@@ -18,15 +21,18 @@ def main():
         st.session_state.persona = None
         st.session_state.assistant = None
         st.session_state.chat_history = []
+        st.session_state.current_page = "create_persona"
 
     # Render sidebar
-    render_sidebar()
+    await render_sidebar()
 
-    # Main content area
-    st.title(AppConfig.APP_NAME)
-    
-    if not st.session_state.persona:
+    # Render current page
+    if st.session_state.current_page == "create_persona":
+        await render_create_persona_page()
+    elif st.session_state.current_page == "chat":
+        await render_chat_page()
+    else:
         st.info("👈 Start by creating a new persona in the sidebar!")
-    
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
